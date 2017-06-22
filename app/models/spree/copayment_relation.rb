@@ -6,5 +6,7 @@ module Spree
     validates :relatable, :related_to, presence: true
 
     validates :relatable_id, uniqueness: { scope: [:related_to_id] }
+
+    scope :active, -> { where(active: true)}
   end
 end
