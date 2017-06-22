@@ -1,0 +1,70 @@
+<div class='flash'></div>
+
+<table class="table sortable" data-hook="products_table" data-sortable-link="<%= update_positions_admin_product_relations_url(@product) %>">
+   <colgroup>
+    <col style="width: 35%" />
+    <col style="width: 20%" />
+    <col style="width: 20%" />
+    <col style="width: 20%" />
+    <col style="width: 5%" />
+  </colgroup>
+  <thead>
+    <tr data-hook="products_header">
+      <th></th>
+      <th><%= Spree.t(:name) %></th>
+      <th><%= Spree.t(:sku) %></th>
+      <th><%= Spree.t(:discount_amount) %></th>
+      <th><%= Spree.t(:update) %></th>
+      <th class="actions"></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @variant.copayment_relations.each do |relation| %>
+      <tr id="<%= spree_dom_id relation %>" data-hook="products_row">
+        <% related_to = relation.related_to %>
+
+        <td><%= link_to related_to.name, related_to.product %></td>
+
+        <td>
+          <%= link_to related_to.sku, admin_product_variant_path(related_to.product, related_to) %>
+        </td>
+
+        <%= form_for relation, url: admin_copayment_relation_url(relation) do |f| %>
+          <td>
+            <div class="input-group">
+              <%= f.text_field :discount_amount, class: 'form-control text-center', id: "discount_#{f.object.id}" %>
+            </div>
+          </td>
+
+          <td>
+            <span class="input-group-btn">
+              <%= link_to Spree.t(:update), "#", class: 'btn btn-primary submit-reaction', 'data-relation': f.object.id %>
+            </span>
+          </td>
+        <% end %>
+
+        <td class="actions">
+          <%= link_to_delete relation, url: admin_copayment_relation_url(relation), no_text: true %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<script type="text/javascript">
+  $('.submit-reaction').on ('click', function() {
+    relation_id = $(this).data('relation')
+
+    discount = $("#discount_" + relation_id).val();
+
+    $.ajax({
+      dataType: 'html',
+      url: ("/admin/copayment_relations/" + relation_id),
+      type: 'PUT',
+      data: { 'copayment_relation[discount_amount]': discount },
+      success: function(data) {
+        $('.flash').html('<div class="alert alert-success"><a class="close" data-dismiss="alert">×</a><span>'+ 'Actualizado con éxito' +'</span></div>')
+      }
+    });
+  })
+</script>
