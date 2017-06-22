@@ -15,6 +15,7 @@ Gem::Specification.new do |s|
   s.require_path = 'lib'
   s.requirements << 'none'
 
+  s.add_runtime_dependency 'spree_backend', '~> 3.0.0'
   s.add_dependency 'spree_core', '~> 3.0.10'
 
   s.add_development_dependency 'capybara', '~> 2.6'
@@ -22,6 +23,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'database_cleaner'
   s.add_development_dependency 'factory_girl', '~> 4.5'
   s.add_development_dependency 'ffaker'
+  s.add_development_dependency 'shoulda-matchers', '~> 2.5'
   s.add_development_dependency 'rspec-rails', '~> 3.4'
   s.add_development_dependency 'sass-rails', '~> 5.0.0'
   s.add_development_dependency 'selenium-webdriver'
