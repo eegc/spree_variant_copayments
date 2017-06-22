@@ -9,7 +9,7 @@ module Spree
         end
 
         def eligible?(order, options = {})
-          return false unless ( variant.present? && copayment_relations )
+          return false unless ( variant.present? && copayment_relations.present? )
 
           order.variants.exists?(variant)
         end
@@ -19,7 +19,7 @@ module Spree
         end
 
         def copayment_relations
-          variant.try(:relations).try(:copayments)
+          variant.try(:copayment_relations)
         end
       end
     end
