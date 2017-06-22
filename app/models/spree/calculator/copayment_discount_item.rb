@@ -15,7 +15,7 @@ module Spree
 
         relatable = relatable_lines.first.variant
 
-        all_relations = relatable.relations.copayments.active.where(*relations_to_relatable)
+        all_relations = relatable.copayment_relations.active.where('discount_amount <> 0.0')
 
         @current_relation = all_relations.find_by(related_to: @line_item.variant)
         active_relations = all_relations.where(related_to: @order.variants).order(discount_amount: :desc)
@@ -33,35 +33,22 @@ module Spree
     def eligible?(line_item)
       possible_copayment  = line_item.variant.id
       relatable_ids = ( line_item.order.variants.ids - [possible_copayment] )
-      Spree::Relation.exists?(discount_query(relatable_ids, possible_copayment))
+      Spree::CopaymentRelation.exists?(discount_query(relatable_ids, possible_copayment))
     end
 
     def relatables_from_order
-      @order.line_items.includes(variant: :relations).where(spree_relations: {
-        relation_type_id: Spree::RelationType.variant_copayment.id,
-        relatable_type: 'Spree::Variant',
+      @order.line_items.includes(variant: :copayment_relations).where(spree_copayment_relations: {
         active: true,
         related_to_id: @line_item.variant.id
-      }).reorder('spree_relations.discount_amount DESC')
+      }).reorder('spree_copayment_relations.discount_amount DESC')
     end
 
     def discount_query(relatable_ids, related_to_ids)
       [
-        'discount_amount <> 0.0 AND relation_type_id = ? AND active = ? AND relatable_type = ? AND relatable_id IN (?) AND related_to_id IN (?)',
-        Spree::RelationType.variant_copayment.id,
+        'discount_amount <> 0.0 AND active = ? AND relatable_id IN (?) AND related_to_id IN (?)',
         true,
-        'Spree::Variant',
         relatable_ids,
         related_to_ids
-      ]
-    end
-
-    def relations_to_relatable
-      [
-        'discount_amount <> 0.0 AND relation_type_id = ? AND active = ? AND relatable_type = ?',
-        Spree::RelationType.variant_copayment.id,
-        true,
-        'Spree::Variant'
       ]
     end
 
