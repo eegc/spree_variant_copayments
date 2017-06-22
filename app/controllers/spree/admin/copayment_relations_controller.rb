@@ -5,7 +5,7 @@ module Spree
 
       def create
         @relation = CopaymentRelation.new(copayment_relation_params)
-        @related_object = Spree::Variant.find(copayment_relation_params[:relatable_id])
+        @variant = Spree::Variant.find(copayment_relation_params[:relatable_id])
 
         @relation.save
 

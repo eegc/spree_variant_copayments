@@ -1,0 +1,58 @@
+<div class="col-md-12">
+  <%= render partial: 'spree/admin/variants/autocomplete', formats: :js %>
+
+  <div id="add-line-item">
+    <fieldset>
+      <legend><%= Spree.t(:add_related_product) %></legend>
+      <div class="row">
+        <div id="related_product_name" class="col-md-6">
+          <div class="form-group">
+            <%= label_tag :add_variant_name, Spree.t(:name_or_sku_short) %>
+            <%= hidden_field_tag :add_variant_name, '', class: 'variant_autocomplete', style: "display: block !important;" %>
+          </div>
+        </div>
+         <div id="related_product_discount" class="col-md-6">
+          <div class="form-group">
+            <%= label_tag :add_discount, Spree.t(:discount_amount) %>
+            <div class="input-group">
+              <%= text_field_tag :add_discount, 0.0, class: 'form-control text-center' %>
+              <span class="input-group-btn">
+                <%= button_link_to Spree.t(:add), admin_copayment_relations_url, icon: 'add', class: 'btn-success', id: 'add_related_product', data: { update: 'related-table-wrapper' } %>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+
+  <div id="related-table-wrapper">
+    <%= render 'spree/admin/copayment_relations/copayment_table' %>
+  </div>
+
+  <%= content_for :head do %>
+    <script type="text/javascript">
+      var expand_variants = false;
+      $(document).on('click', '#add_related_product', function(){
+        if($('#add_variant_name').val() == '') { return false; }
+        update_target = $(this).data('update');
+        $.ajax({
+          dataType: 'script',
+          url: this.href,
+          type: 'POST',
+          data: {
+            'copayment_relation[relatable_id]' : '<%= @variant.id %>',
+            'copayment_relation[related_to_id]': $('#add_variant_name').val(),
+            'copayment_relation[discount_amount]' : $('#add_discount').val(),
+          }
+        });
+        return false;
+      });
+
+      $(function () {
+        $('#add_variant_name.variant_autocomplete').variantAutocomplete();
+      });
+    </script>
+  <% end %>
+
+</div>
