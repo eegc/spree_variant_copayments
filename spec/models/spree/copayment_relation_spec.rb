@@ -9,6 +9,7 @@ RSpec.describe Spree::CopaymentRelation, type: :model do
   context 'attributes' do
     it { is_expected.to respond_to(:discount_amount) }
     it { is_expected.to respond_to(:position) }
+    it { is_expected.to respond_to(:active) }
   end
 
   context 'validation' do
