@@ -1,6 +1,6 @@
 <div class='flash'></div>
 
-<table class="table sortable" data-hook="products_table" data-sortable-link="<%= update_positions_admin_product_relations_url(@product) %>">
+<table class="table sortable" data-hook="products_table" data-sortable-link="<%= update_positions_admin_copayment_relations_url %>">
    <colgroup>
     <col style="width: 35%" />
     <col style="width: 20%" />
@@ -10,7 +10,6 @@
   </colgroup>
   <thead>
     <tr data-hook="products_header">
-      <th></th>
       <th><%= Spree.t(:name) %></th>
       <th><%= Spree.t(:sku) %></th>
       <th><%= Spree.t(:discount_amount) %></th>

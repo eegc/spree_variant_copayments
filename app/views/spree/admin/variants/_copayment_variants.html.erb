@@ -5,13 +5,13 @@
     <fieldset>
       <legend><%= Spree.t(:add_related_product) %></legend>
       <div class="row">
-        <div id="related_product_name" class="col-md-5">
+        <div id="related_product_name" class="col-md-6">
           <div class="form-group">
             <%= label_tag :add_variant_name, Spree.t(:name_or_sku_short) %>
             <%= hidden_field_tag :add_variant_name, '', class: 'variant_autocomplete', style: "display: block !important;" %>
           </div>
         </div>
-         <div id="related_product_discount" class="col-md-3">
+         <div id="related_product_discount" class="col-md-6">
           <div class="form-group">
             <%= label_tag :add_discount, Spree.t(:discount_amount) %>
             <div class="input-group">
