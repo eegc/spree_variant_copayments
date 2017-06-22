@@ -14,7 +14,7 @@ module Spree
 
       def update
         @relation = Spree::CopaymentRelation.find(params[:id])
-        @relation.update_attributes(relation_params)
+        @relation.update_attributes(copayment_relation_params)
 
         respond_to do |format|
           format.html { redirect_to(related_admin_product_url(@relation.relatable)) }
@@ -53,14 +53,12 @@ module Spree
       private
 
       def copayment_relation_params
-        params.require(:relation).permit(*permitted_attributes)
+        params.require(:copayment_relation).permit(*permitted_attributes)
       end
 
       def permitted_attributes
         [
-          :related_to,
           :related_to_id,
-          :relatable,
           :relatable_id,
           :discount_amount,
           :position,
