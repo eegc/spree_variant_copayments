@@ -45,7 +45,7 @@ module Spree
 
     def discount_query(relatable_ids, related_to_ids)
       [
-        'discount_amount <> 0.0 AND active = ? AND relatable_id IN (?) AND related_to_id IN (?)',
+        'active = ? AND relatable_id IN (?) AND related_to_id IN (?)',
         true,
         relatable_ids,
         related_to_ids
