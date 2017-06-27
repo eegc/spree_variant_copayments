@@ -1,0 +1,5 @@
+<% unless @product.has_variants? %>
+  <li<%== ' class="active"' if current == :copayments %>>
+    <%= link_to_with_icon 'link', Spree.t(:copayments), copayment_relations_admin_product_url(@product) %>
+  </li>
+<% end %>
