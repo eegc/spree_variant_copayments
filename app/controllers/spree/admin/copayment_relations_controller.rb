@@ -5,7 +5,9 @@ module Spree
 
       def create
         @relation = CopaymentRelation.new(copayment_relation_params)
+
         @variant = Spree::Variant.find(copayment_relation_params[:relatable_id])
+        @product = @variant.product
 
         @relation.save
 
@@ -15,6 +17,9 @@ module Spree
       def update
         @relation = Spree::CopaymentRelation.find(params[:id])
         @relation.update_attributes(copayment_relation_params)
+
+        @variant = @relation.relatable
+        @product = @variant.product
 
         respond_to do |format|
           format.html { redirect_to(related_admin_product_url(@relation.relatable)) }
@@ -34,7 +39,9 @@ module Spree
 
       def destroy
         @relation = Spree::CopaymentRelation.find(params[:id])
-        @relation.destroy
+
+        @variant = @relation.relatable
+        @product = @variant.product
 
         if @relation.destroy
           flash[:success] = flash_message_for(@relation, :successfully_removed)

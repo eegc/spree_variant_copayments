@@ -1,1 +1,1 @@
-$('#products-table-wrapper').html('<%= escape_javascript(render "spree/admin/copayment_relations/copayment_table") %>');
+$('.copayments-container').html('<%= escape_javascript(render partial: "spree/admin/products/copayments_container", locals: { product: @product }) %>');

@@ -1,5 +1,3 @@
-<div class='flash-related'></div>
-
 <table class="table sortable" data-hook="products_table" data-sortable-link="<%= update_positions_admin_copayment_relations_url %>">
    <colgroup>
     <col style="width: 35%" />
@@ -20,7 +18,7 @@
     </tr>
   </thead>
   <tbody>
-    <% @variant.copayment_relations.each do |relation| %>
+    <% variant.copayment_relations.each do |relation| %>
       <tr id="<%= spree_dom_id relation %>" data-hook="products_row">
         <% related_to = relation.related_to %>
 
@@ -57,22 +55,3 @@
     <% end %>
   </tbody>
 </table>
-
-<script type="text/javascript">
-  $('.submit-reaction').on ('click', function() {
-    relation_id = $(this).data('relation')
-
-    discount = $("#discount_" + relation_id).val();
-    active   = $("#active_" + relation_id).is(':checked')
-
-    $.ajax({
-      dataType: 'html',
-      url: ("/admin/copayment_relations/" + relation_id),
-      type: 'PUT',
-      data: { 'copayment_relation[discount_amount]': discount, 'copayment_relation[active]': active },
-      success: function(data) {
-        $('.flash-related').html('<div class="alert alert-success"><a class="close" data-dismiss="alert">×</a><span>'+ 'Actualizado con éxito' +'</span></div>')
-      }
-    });
-  })
-</script>
