@@ -1,0 +1,34 @@
+<% product.variants_including_master.each do |variant| %>
+  <% if variant.copayments.exists? %>
+    <div id="add_copayment_form" class="panel panel-default">
+      <div class="panel-heading panel-heading-copayment">
+        <%= "#{variant.name} (#{variant.sku})" %>
+      </div>
+
+      <div class="panel-body">
+        <div id="copayment-table-wrapper">
+          <%= render partial: 'spree/admin/copayment_relations/copayment_table', locals: { variant: variant } %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<script type="text/javascript">
+  $('.submit-reaction').on ('click', function(event) {
+    relation_id = $(this).data('relation')
+
+    discount = $("#discount_" + relation_id).val();
+    active   = $("#active_" + relation_id).is(':checked')
+
+    $.ajax({
+      dataType: 'html',
+      url: ("/admin/copayment_relations/" + relation_id),
+      type: 'PUT',
+      data: { 'copayment_relation[discount_amount]': discount, 'copayment_relation[active]': active },
+      success: function(data) {
+        $('.flash-copayment').html('<div class="alert alert-success"><a class="close" data-dismiss="alert">×</a><span>'+ 'Actualizado con éxito' +'</span></div>')
+      }
+    });
+  })
+</script>
