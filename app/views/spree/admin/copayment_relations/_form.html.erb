@@ -1,0 +1,63 @@
+<div id="add_copayment_form" class="panel panel-default ">
+  <div class="panel-heading">
+    <h1 class="panel-title">
+      <%= Spree.t(:add_copayment_relation) %>
+    </h1>
+  </div>
+
+  <div class="panel-body">
+    <div class="row">
+      <div class="col-md-4">
+        <div class="form-group">
+          <%= label_tag 'variant_id', Spree.t(:variant) %>
+          <%= select_tag 'variant_id', options_from_collection_for_select(product.variants_including_master, :id, :sku_and_options_text),
+              class: 'select2' %>
+        </div>
+      </div>
+
+      <div id="related_product_name" class="col-md-4">
+        <div class="form-group">
+          <%= label_tag :add_variant_name, Spree.t(:name_or_sku_short) + " (Copago)" %>
+          <%= hidden_field_tag :add_variant_name, '', class: 'variant_autocomplete', style: "display: block !important;" %>
+        </div>
+      </div>
+
+      <div id="related_product_discount" class="col-md-4">
+        <div class="form-group">
+          <%= label_tag :add_discount, Spree.t(:discount_amount) %>
+          <%= text_field_tag :add_discount, 0.0, class: 'form-control text-center' %>
+        </div>
+      </div>
+
+
+      <div class="form-actions text-center" data-hook="buttons">
+        <%= button_link_to Spree.t(:add), admin_copayment_relations_url, icon: 'add', class: 'btn btn-primary add_related_product', data: { update: 'copayment-table-wrapper' } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%= content_for :head do %>
+  <script type="text/javascript">
+    var expand_variants = false;
+    $(document).on('click', '.add_related_product', function(){
+      if($('#add_variant_name').val() == '' || $('#variant_id').val() == '') { return false; }
+
+      $.ajax({
+        dataType: 'script',
+        url: this.href,
+        type: 'POST',
+        data: {
+          'copayment_relation[relatable_id]' : $('#variant_id').val(),
+          'copayment_relation[related_to_id]': $('#add_variant_name').val(),
+          'copayment_relation[discount_amount]' : $('#add_discount').val()
+        }
+      });
+      return false;
+    });
+
+    $(function () {
+      $('#add_variant_name.variant_autocomplete').variantAutocomplete();
+    });
+  </script>
+<% end %>

@@ -14,12 +14,12 @@ module Spree
           order.variants.exists?(variant) && order.variants.exists?(variant.active_copayments)
         end
 
-        def variant
-          Spree::Variant.find(preferred_related) if preferred_related
+        def product
+          Spree::Product.find(preferred_related) if preferred_related.present? && preferred_related > 0
         end
 
-        def copayment_relations
-          variant.try(:copayment_relations)
+        def variants
+          product.variants_including_master if product.present?
         end
       end
     end
