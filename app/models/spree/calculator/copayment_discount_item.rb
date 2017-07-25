@@ -22,7 +22,7 @@ module Spree
         total_discount   = 0
 
         all_relations.each do |relation|
-          break total_discount if relatables_quant == 0
+          break total_discount if relatables_quant <= 0
 
           copayments_quant = copayments_quantity(relation)
           relatable_quant  = relatable_lines.where(variant_id: relation.relatable_id).sum(:quantity)
@@ -31,9 +31,11 @@ module Spree
 
           factor = get_factor(relation, relatable_quant, copayments_quant)
 
-          relatables_quant -= factor
+          final_factor = relatables_quant < factor && relatables_quant < copayments_quant ? relatables_quant : factor
 
-          total_discount += (discount * factor) if relation.related_to.id == @line_item.variant.id
+          relatables_quant -= final_factor
+
+          total_discount += (discount * final_factor) if relation.related_to.id == @line_item.variant.id
         end
 
         total_discount
