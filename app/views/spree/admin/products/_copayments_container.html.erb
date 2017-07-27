@@ -1,3 +1,5 @@
+<div class='flash-copayment'></div>
+
 <% product.variants_including_master.each do |variant| %>
   <% if variant.copayments.exists? %>
     <div id="add_copayment_form" class="panel panel-default">

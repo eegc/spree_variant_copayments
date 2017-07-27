@@ -11,20 +11,34 @@ module Spree
         @line_item = object
         @order     = @line_item.order
 
-        relatable_lines = relatables_from_order
+        relatable_lines  = relatables_from_order
+        relatables       = Spree::Variant.where(id: relatable_lines.pluck(:variant_id))
+        relatables_quant = relatable_lines.sum(:quantity)
 
-        relatable = relatable_lines.first.variant
+        all_relations      = get_order_relations(relatables)
 
-        all_relations = relatable.copayment_relations.active.where('discount_amount <> 0.0')
+        current_relations = all_relations.where(related_to: @line_item.variant)
 
-        @current_relation = all_relations.find_by(related_to: @line_item.variant)
-        active_relations = all_relations.where(related_to: @order.variants).order(discount_amount: :desc)
+        total_discount   = 0
 
-        discount = @current_relation.discount_amount
+        all_relations.each do |relation|
+          break total_discount if relatables_quant <= 0
 
-        factor = get_factor(active_relations, relatable_lines.sum(:quantity))
+          copayments_quant = copayments_quantity(relation)
+          relatable_quant  = relatable_lines.where(variant_id: relation.relatable_id).sum(:quantity)
 
-        discount * factor
+          discount = relation.discount_amount
+
+          factor = get_factor(relation, relatable_quant, copayments_quant)
+
+          final_factor = relatables_quant < factor && relatables_quant < copayments_quant ? relatables_quant : factor
+
+          relatables_quant -= final_factor
+
+          total_discount += (discount * final_factor) if relation.related_to.id == @line_item.variant.id
+        end
+
+        total_discount
       else
         0
       end
@@ -32,15 +46,18 @@ module Spree
 
     def eligible?(line_item)
       possible_copayment  = line_item.variant.id
-      relatable_ids = ( line_item.order.variants.ids - [possible_copayment] )
-      Spree::CopaymentRelation.exists?(discount_query(relatable_ids, possible_copayment))
+      relatable_ids = line_item.order.variants.flat_map{ |x| [x.product.master.id, x.id]}
+      final_relatable_ids = ( relatable_ids - [possible_copayment] )
+      Spree::CopaymentRelation.exists?(discount_query(final_relatable_ids, possible_copayment))
     end
 
     def relatables_from_order
       @order.line_items.includes(variant: :copayment_relations).where(spree_copayment_relations: {
         active: true,
         related_to_id: @line_item.variant.id
-      }).reorder('spree_copayment_relations.discount_amount DESC')
+      }).
+      where('spree_copayment_relations.discount_amount <> 0.0').
+      reorder('spree_copayment_relations.discount_amount DESC')
     end
 
     def discount_query(relatable_ids, related_to_ids)
@@ -52,27 +69,26 @@ module Spree
       ]
     end
 
-    def copayments_quantity(relations)
-      variant_ids = relations.pluck(:related_to_id)
-      @order.line_items.where(variant_id: variant_ids).sum(:quantity)
+    def get_order_relations(relatables)
+      all_relations_ids = relatables.flat_map{ |v| v.all_copayment_relations.active.with_discount.ids }
+      Spree::CopaymentRelation.where(id: all_relations_ids, related_to: @order.variants.ids).order(discount_amount: :desc)
     end
 
-    def get_factor(active_relations, relatable_quant)
-      all_quant = copayments_quantity(active_relations)
+    def copayments_quantity(current_relation)
+      @order.line_items.where(variant_id: current_relation.related_to).sum(:quantity)
+    end
 
-      if relatable_quant > all_quant
-        relatable_quant < @line_item.quantity ? relatable_quant : @line_item.quantity
+    def get_factor(current_relation, relatable_quant, copayments_quant)
+      return 0 if relatable_quant  <= 0
+      return 0 if copayments_quant <= 0
+
+      if relatable_quant < copayments_quant
+        return relatable_quant
       else
-        active_relations.each do |relation|
-          break 0 if relatable_quant <= 0
-
-          relation_quant = @order.line_items.joins(:variant).find_by(spree_variants: { id: relation.related_to }).quantity
-          value = (relation_quant > relatable_quant) ? relatable_quant : relation_quant
-          relatable_quant -= relation_quant
-
-          break value if relation.id == @current_relation.id
-        end
+        return copayments_quant
       end
+
+      0
     end
 
     def copayment_adjustments(line_item, relatable, product_ids)

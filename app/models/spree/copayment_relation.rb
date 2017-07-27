@@ -7,6 +7,7 @@ module Spree
 
     validates :relatable_id, uniqueness: { scope: [:related_to_id] }
 
-    scope :active, -> { where(active: true)}
+    scope :active, -> { where(active: true) }
+    scope :with_discount, -> { where('discount_amount <> 0.0') }
   end
 end

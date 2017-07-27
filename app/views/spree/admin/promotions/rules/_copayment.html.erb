@@ -1,67 +1,23 @@
 <div class="panel-body">
   <div class="field alpha omega eight columns">
-    <%= label_tag "#{param_prefix}_preferred_related", Spree.t(:variant) %>
-    <%= hidden_field_tag "#{param_prefix}[preferred_related]", promotion_rule.preferred_related, { class: 'variant_picker', style: 'width: 100%;' } %>
+    <%= label_tag "#{param_prefix}_preferred_related", Spree.t(:product) %>
+    <%= hidden_field_tag "#{param_prefix}[preferred_related]", promotion_rule.preferred_related, { class: 'product_picker', style: 'width: 100%;' } %>
   </div>
   <br>
-  <div>
-    <%= label_tag "", Spree.t(:copayments) %>
-    <div class="copayment-table-flash"></div>
 
-    <table class="table" data-hook="copayments_table">
+  <% if promotion_rule.product.present? %>
+    <div class="copayments-form">
+      <%= render partial: 'spree/admin/copayment_relations/form', locals: { product: promotion_rule.product } %>
+    </div>
 
-      <thead>
-        <tr data-hook="copayments_header">
-          <th><%= Spree.t(:name) %></th>
-          <th><%= Spree.t(:discount) %></th>
-          <th><%= Spree.t(:show) %></th>
-          <th><%= %></th>
-        </tr>
-      </thead>
-      <tbody>
-
-        <% if promotion_rule.copayment_relations.present? %>
-          <% promotion_rule.copayment_relations.each do |relation| %>
-            <tr id="<%= spree_dom_id relation %>" data-hook="copayments_row">
-              <td><%= link_to("#{relation.related_to.name} ( #{relation.related_to.sku} )", admin_product_variant_path(relation.related_to.product, relation.related_to)) %></td>
-
-              <td>
-                <%= text_field_tag 'relation[discount_amount]', relation.discount_amount, class: 'form-control text-center', id: "discount_#{relation.id}" %>
-              </td>
-              <td>
-                <%= check_box_tag 'relation[active]', 1, relation.active?, class: 'form-control text-center', id: "active_#{relation.id}" %>
-              </td>
-              <td>
-                <%= link_to Spree.t(:update), "#copayment_div_#{relation.id}", class: 'pull-right btn btn-primary submit-reaction', 'data-relation': relation.id %>
-              </td>
-            </tr>
-          <% end %>
-        <% end %>
-
-      </tbody>
-    </table>
-  </div>
+    <div class="copayments-container">
+      <%= render partial: 'spree/admin/products/copayments_container', locals: { product: promotion_rule.product } %>
+    </div>
+  <% end %>
 </div>
 
 <script type="text/javascript">
   $(function () {
-    $('.variant_picker').variantAutocomplete();
+    $('.product_picker').productAutocomplete({multiple: false});
   });
-
-  $('.submit-reaction').on ('click', function() {
-    relation_id = $(this).data('relation')
-
-    discount = $("#discount_" + relation_id).val();
-    active   = $("#active_" + relation_id).is(':checked')
-
-    $.ajax({
-      dataType: 'html',
-      url: ("/admin/copayment_relations/" + relation_id),
-      type: 'PUT',
-      data: { 'copayment_relation[discount_amount]': discount, 'copayment_relation[active]': active },
-      success: function(data) {
-        $('.copayment-table-flash').html('<div class="alert alert-success"><a class="close" data-dismiss="alert">×</a><span>'+ 'Actualizado con éxito' +'</span></div>')
-      }
-    });
-  })
 </script>

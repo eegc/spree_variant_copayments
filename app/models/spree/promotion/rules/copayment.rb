@@ -9,17 +9,21 @@ module Spree
         end
 
         def eligible?(order, options = {})
-          return false unless ( variant.present? && variant.active_copayments.present? )
+          return false unless ( variants.present? && all_variants_copayments.present? )
 
-          order.variants.exists?(variant) && order.variants.exists?(variant.active_copayments)
+          order.variants.exists?(variants) && order.variants.exists?(all_variants_copayments)
         end
 
-        def variant
-          Spree::Variant.find(preferred_related) if preferred_related
+        def product
+          Spree::Product.find(preferred_related) if preferred_related.present? && preferred_related > 0
         end
 
-        def copayment_relations
-          variant.try(:copayment_relations)
+        def variants
+          product.variants_including_master if product.present?
+        end
+
+        def all_variants_copayments
+          product.all_active_copayments
         end
       end
     end
