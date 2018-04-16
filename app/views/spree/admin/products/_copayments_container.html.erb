@@ -1,6 +1,7 @@
 <div class='flash-copayment'></div>
+<% variants = product.has_variants? ? product.variants : product.variants_including_master %>
 
-<% product.variants_including_master.each do |variant| %>
+<% variants.each do |variant| %>
   <% if variant.copayments.exists? %>
     <div id="add_copayment_form" class="panel panel-default">
       <div class="panel-heading panel-heading-copayment">
