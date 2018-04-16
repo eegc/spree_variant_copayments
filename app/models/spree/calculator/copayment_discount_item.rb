@@ -8,34 +8,73 @@ module Spree
     def compute(object = nil)
       if eligible?(object)
 
-        @line_item = object
-        @order     = @line_item.order
+        @line_item  = object
+        @order      = @line_item.order
+        @variant    = @line_item.variant
 
-        relatable_lines  = relatables_from_order
-        relatables       = Spree::Variant.where(id: relatable_lines.pluck(:variant_id))
-        relatables_quant = relatable_lines.sum(:quantity)
+        #All order lines with copayment related to the current variant
+        @relatable_lines  = relatables_from_order
 
-        all_relations      = get_order_relations(relatables)
+        #Order variants with copayment related to the current variant
+        relatables = Spree::Variant.where(id: @relatable_lines.pluck(:variant_id))
 
+        #Total quantity for relatables
+        @relatables_quant = @relatable_lines.sum(:quantity)
+
+        #All active relations in this order
+        all_relations = get_order_relations(relatables)
+
+        #Relations related to current variant
         current_relations = all_relations.where(related_to: @line_item.variant)
 
-        total_discount   = 0
+        #Item quantity (this is max factor to applied differents discounts)
+        @item_quant = @line_item.quantity
+
+        total_discount = 0
+
+        # Go through all the relations (order by discount),
+        # check if it belong to the current damn variant and add the motherfucker discount
 
         all_relations.each do |relation|
-          break total_discount if relatables_quant <= 0
+          relatable_id = relation.relatable_id
+          related_to_id = relation.related_to_id
 
-          copayments_quant = copayments_quantity(relation)
-          relatable_quant  = relatable_lines.where(variant_id: relation.relatable_id).sum(:quantity)
+          # Avoid relation if it not related with the promotion
+          next unless ([relatable_id] & relatables_promotion.ids).present? || ([related_to_id] & copayments_promotion.ids).present?
+
+          break total_discount if @relatables_quant <= 0
+          break total_discount if @item_quant < 0
+
+          # Copayment quantity for this relation
+          copayment_quant = copayments_quantity(relation)
+
+          # Relatables for this relation
+          relation_relatables = relatables_by_relation(relation)
+          relatable_quant  = relation_relatables.sum(:quantity)
 
           discount = relation.discount_amount
 
-          factor = get_factor(relation, relatable_quant, copayments_quant)
+          factor = final_factor_by_relation(relatable_quant, copayment_quant)
 
-          final_factor = relatables_quant < factor && relatables_quant < copayments_quant ? relatables_quant : factor
+          # Add discount to the total of the promotion:
+          # If the copayment of the relationship is the evaluated variant
+          # If the relatable of the relationship belongs to the variants of the promotion
+          if related_to_id == @variant.id && ([relatable_id]  & relatables_promotion.ids).present?
+            total_discount += (discount * factor)
+          end
 
-          relatables_quant -= final_factor
+          # Discounting of the evaluated relatable copayment:
+          # If it is part of the relatables of the relationship
+          if (relatables.ids & relation_relatables.pluck(:variant_id)).present?
+            @relatables_quant -= factor
+          end
 
-          total_discount += (discount * final_factor) if relation.related_to.id == @line_item.variant.id
+          # Discount the amount factor of the copayment evaluated:
+          # If the copayment of the relationship is the evaluated variant
+          # If it is within the copayments of the promo
+          if ([@variant.id] & [related_to_id] & copayments_promotion.ids).present?
+            @item_quant -= factor
+          end
         end
 
         total_discount
@@ -44,20 +83,22 @@ module Spree
       end
     end
 
-    def eligible?(line_item)
-      possible_copayment  = line_item.variant.id
-      relatable_ids = line_item.order.variants.flat_map{ |x| [x.product.master.id, x.id]}
-      final_relatable_ids = ( relatable_ids - [possible_copayment] )
-      Spree::CopaymentRelation.exists?(discount_query(final_relatable_ids, possible_copayment))
+    def relatables_promotion
+      self.calculable.promotion.rules.find_by(type: "Spree::Promotion::Rules::Copayment").variants
     end
 
-    def relatables_from_order
-      @order.line_items.includes(variant: :copayment_relations).where(spree_copayment_relations: {
-        active: true,
-        related_to_id: @line_item.variant.id
-      }).
-      where('spree_copayment_relations.discount_amount <> 0.0').
-      reorder('spree_copayment_relations.discount_amount DESC')
+    def copayments_promotion
+      self.calculable.promotion.rules.find_by(type: "Spree::Promotion::Rules::Copayment").copayments
+    end
+
+    def eligible?(line_item)
+      return false unless relatables_promotion
+
+      possible_copayment  = line_item.variant.id
+      relatable_ids       = line_item.order.variants.ids - [possible_copayment]
+
+      final_relatable_ids = relatable_ids & relatables_promotion.ids
+      Spree::CopaymentRelation.exists?(discount_query(final_relatable_ids, possible_copayment))
     end
 
     def discount_query(relatable_ids, related_to_ids)
@@ -69,45 +110,36 @@ module Spree
       ]
     end
 
+    def relatables_from_order
+      @order.line_items.includes(variant: :copayment_relations).where(spree_copayment_relations: {
+        active: true,
+        related_to_id: @variant.id
+      }).
+      where('spree_copayment_relations.discount_amount <> 0.0').
+      reorder('spree_copayment_relations.discount_amount DESC')
+    end
+
     def get_order_relations(relatables)
-      all_relations_ids = relatables.flat_map{ |v| v.all_copayment_relations.active.with_discount.ids }
+      all_relations_ids = relatables.flat_map{ |v| v.active_copayments.ids }
       Spree::CopaymentRelation.where(id: all_relations_ids, related_to: @order.variants.ids).order(discount_amount: :desc)
     end
 
-    def copayments_quantity(current_relation)
-      @order.line_items.where(variant_id: current_relation.related_to).sum(:quantity)
+    def copayments_quantity(relation)
+      @order.line_items.where(variant_id: relation.related_to_id).sum(:quantity)
     end
 
-    def get_factor(current_relation, relatable_quant, copayments_quant)
+    def relatables_by_relation(relation)
+      @relatable_lines.where(variant_id: relation.relatable_id)
+    end
+
+    def final_factor_by_relation(relatable_quant, copayment_quant)
+      return 0 if @relatables_quant <= 0
+      return 0 if @item_quant <= 0
       return 0 if relatable_quant  <= 0
-      return 0 if copayments_quant <= 0
+      return 0 if copayment_quant <= 0
 
-      if relatable_quant < copayments_quant
-        return relatable_quant
-      else
-        return copayments_quant
-      end
 
-      0
-    end
-
-    def copayment_adjustments(line_item, relatable, product_ids)
-      relations = Spree::Relation.where(*discount_query(relatable.id, product_ids))
-      exists_relations_adjustments(line_item, relations)
-    end
-
-    def excluded_copayment_adjustments(line_item, relatable, product_ids)
-      relations = Spree::Relation.where(*discount_query(relatable.id, product_ids)).excluding
-      exists_relations_adjustments(line_item, relations)
-    end
-
-    def exists_relations_adjustments(line_item, relations)
-      other_variant_ids = Spree::Variant.where(product_id: relations.pluck(:related_to_id)).ids
-
-      line_item.order.line_item_adjustments.
-        where(spree_line_items: { variant_id: other_variant_ids }).
-        includes(source: :calculator).
-        select{|adj| adj.source.try(:calculator).is_a?(Spree::Calculator::RelatedProductDiscountItem) }
+      [@relatables_quant, relatable_quant, copayment_quant, @item_quant].min rescue 0
     end
   end
 end
