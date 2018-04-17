@@ -1,7 +1,7 @@
 <div class="panel-body">
   <div class="field alpha omega eight columns">
     <%= label_tag "#{param_prefix}_preferred_related", Spree.t(:product) %>
-    <%= hidden_field_tag "#{param_prefix}[preferred_related]", promotion_rule.preferred_related, { class: 'product_picker', style: 'width: 100%;' } %>
+    <%= hidden_field_tag "#{param_prefix}[preferred_related]", promotion_rule.preferred_related, { class: 'uniq_product_picker', style: 'width: 100%;' } %>
   </div>
   <br>
 
@@ -16,8 +16,11 @@
   <% end %>
 </div>
 
-<script type="text/javascript">
-  $(function () {
-    $('.product_picker').productAutocomplete({multiple: false});
-  });
-</script>
+
+<%= content_for :head do %>
+  <script type="text/javascript">
+    $(document).ready(function () {
+      $('.uniq_product_picker').productAutocomplete({multiple: false});
+    });
+  </script>
+<% end %>
