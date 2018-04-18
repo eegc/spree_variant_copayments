@@ -13,7 +13,7 @@ module Spree
         @variant    = @line_item.variant
 
         #All order lines with copayment related to the current variant
-        @relatable_lines  = relatables_from_order
+        @relatable_lines  = relatable_lines_from_order
 
         #Order variants with copayment related to the current variant
         relatables = Spree::Variant.where(id: @relatable_lines.pluck(:variant_id))
@@ -46,7 +46,7 @@ module Spree
           break total_discount if @item_quant < 0
 
           # Copayment quantity for this relation
-          copayment_quant = copayments_quantity(relation)
+          copayment_quant = copayments_quantity_by_relation(relation)
 
           # Relatables for this relation
           relation_relatables = relatables_by_relation(relation)
@@ -110,7 +110,7 @@ module Spree
       ]
     end
 
-    def relatables_from_order
+    def relatable_lines_from_order
       @order.line_items.includes(variant: :copayment_relations).where(spree_copayment_relations: {
         active: true,
         related_to_id: @variant.id
@@ -120,11 +120,11 @@ module Spree
     end
 
     def get_order_relations(relatables)
-      all_relations_ids = relatables.flat_map{ |v| v.active_copayments.ids }
+      all_relations_ids = relatables.flat_map{ |v| v.discount_copayments.ids }
       Spree::CopaymentRelation.where(id: all_relations_ids, related_to: @order.variants.ids).order(discount_amount: :desc)
     end
 
-    def copayments_quantity(relation)
+    def copayments_quantity_by_relation(relation)
       @order.line_items.where(variant_id: relation.related_to_id).sum(:quantity)
     end
 

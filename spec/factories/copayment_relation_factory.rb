@@ -3,5 +3,6 @@ FactoryGirl.define do
     association :relatable, factory: :variant
     association :related_to, factory: :variant
     active true
+    discount_amount 1.0
   end
 end
