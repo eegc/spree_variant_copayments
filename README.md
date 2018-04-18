@@ -1,17 +1,17 @@
-SpreeVariantCopayments
-======================
+Spree Variant Copayments
+========================
 
-Introduction goes here.
+Module for assosiate variants wit variants copayments.
+
+Add rule and calculator for promotions.
+
 
 ## Installation
 
 1. Add this extension to your Gemfile with this line:
   ```ruby
-  gem 'spree_variant_copayments', github: '[your-github-handle]/spree_variant_copayments', branch: 'X-X-stable'
+  gem 'spree_variant_copayments', github: 'engarcia/spree_variant_copayments', branch: '3-0-stable'
   ```
-
-  The `branch` option is important: it must match the version of Spree you're using.
-  For example, use `3-1-stable` if you're using Spree `3-1-stable` or any `3.1.x` version.
 
 2. Install the gem using Bundler:
   ```ruby
@@ -43,11 +43,4 @@ Simply add this require statement to your spec_helper:
 require 'spree_variant_copayments/factories'
 ```
 
-
-## Contributing
-
-If you'd like to contribute, please take a look at the
-[instructions](CONTRIBUTING.md) for installing dependencies and crafting a good
-pull request.
-
-Copyright (c) 2017 [name of extension creator], released under the New BSD License
+Copyright (c) 2017 EnriqueGC, released under the New BSD License

@@ -10,15 +10,15 @@
       <div class="col-md-4">
         <div class="form-group">
           <%= label_tag 'variant_id', Spree.t(:variant) %>
-          <%= select_tag 'variant_id', options_from_collection_for_select(product.variants_including_master, :id, :sku_and_options_text),
+          <%= select_tag 'variant_id', options_from_collection_for_select((product.has_variants? ? product.variants : product.variants_including_master), :id, :sku_and_options_text),
               class: 'select2' %>
         </div>
       </div>
 
       <div id="related_product_name" class="col-md-4">
         <div class="form-group">
-          <%= label_tag :add_variant_name, Spree.t(:name_or_sku_short) + " (Copago)" %>
-          <%= hidden_field_tag :add_variant_name, '', class: 'variant_autocomplete', style: "display: block !important;" %>
+          <%= label_tag :add_variant_name, Spree.t(:sku) + " (Copago)" %>
+          <%= hidden_field_tag :add_variant_name, '', class: 'variant_picker', style: "display: block !important;" %>
         </div>
       </div>
 
@@ -57,7 +57,7 @@
     });
 
     $(function () {
-      $('#add_variant_name.variant_autocomplete').variantAutocomplete();
+      $('.variant_picker').variantPicker({ multiple: false });
     });
   </script>
 <% end %>
