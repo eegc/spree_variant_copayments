@@ -69,7 +69,8 @@ module Spree
           :relatable_id,
           :discount_amount,
           :position,
-          :active
+          :active,
+          :exclude
         ]
       end
     end
