@@ -3,5 +3,6 @@ es:
     add_copayment_relation: Agregar Copago
     discount_amount: Valor del descuento
     active: Activo
+    exclude: Excluyente
     name_or_sku_short: Nombre o SKU
     copayment_discount_item: Descuento a la variante por copago

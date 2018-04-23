@@ -5,11 +5,7 @@ Spree::Variant.class_eval do
   has_many :copayments, source: :related_to, through: :copayment_relations
   has_many :active_copayments, -> { where(spree_copayment_relations: { active: true }) }, source: :related_to, through: :copayment_relations
 
-  def all_copayment_relations
-    copayment_relations.active
-  end
-
-  def active_copayments
+  def discount_copayments
     copayment_relations.active.with_discount
   end
 end

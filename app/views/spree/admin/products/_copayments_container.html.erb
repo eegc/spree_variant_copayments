@@ -22,13 +22,14 @@
     relation_id = $(this).data('relation')
 
     discount = $("#discount_" + relation_id).val();
+    exclude = $("#exclude_" + relation_id).is(':checked')
     active   = $("#active_" + relation_id).is(':checked')
 
     $.ajax({
       dataType: 'html',
       url: ("/admin/copayment_relations/" + relation_id),
       type: 'PUT',
-      data: { 'copayment_relation[discount_amount]': discount, 'copayment_relation[active]': active },
+      data: { 'copayment_relation[discount_amount]': discount, 'copayment_relation[active]': active, 'copayment_relation[exclude]': exclude },
       success: function(data) {
         $('.flash-copayment').html('<div class="alert alert-success"><a class="close" data-dismiss="alert">×</a><span>'+ 'Actualizado con éxito' +'</span></div>')
       }
