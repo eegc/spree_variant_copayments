@@ -93,7 +93,6 @@ module Spree
         end
 
         context "More than one promotions with copayments" do
-
           let!(:promotion2) { Spree::Promotion.create(name: "promo2") }
           let(:subject2)    { Spree::Calculator::CopaymentDiscountItem.new }
           let!(:action2)    { Spree::Promotion::Actions::CreateItemAdjustments.create(promotion: promotion2, calculator: subject2) }
@@ -105,119 +104,154 @@ module Spree
             promotion.reload
           end
 
-          it "computed with relatable and inactive copayment in cart" do
-            # variant    -> copayment
-            # relatable3 -> copayment (inactive)
+          context "Shared copayments" do
+            before(:each) do
+              Spree::Config[:shared_copayments] = true
+            end
 
-            rule2.preferred_related = variant3.product_id
-            rule2.save
-            promotion2.reload
+            it "computed with relatable and inactive copayment in cart" do
+              # variant    -> copayment
+              # relatable3 -> copayment (inactive)
 
-            order.line_items = [relatable_line_1, relatable_line_3, copayment_line_1]
+              rule2.preferred_related = variant3.product_id
+              rule2.save
+              promotion2.reload
 
-            expect(subject.eligible?(copayment_line_1)).to be true
-            expect(subject2.eligible?(copayment_line_1)).to be false
+              order.line_items = [relatable_line_1, relatable_line_3, copayment_line_1]
 
-            expect(subject.compute(copayment_line_1)).to eq 1
-            expect(subject2.compute(copayment_line_1)).to eq 0
+              expect(subject.eligible?(copayment_line_1)).to be true
+              expect(subject2.eligible?(copayment_line_1)).to be false
+
+              expect(subject.compute(copayment_line_1)).to eq 1
+              expect(subject2.compute(copayment_line_1)).to eq 0
+            end
+
+            it "computed more than one relatables with the same copayment" do
+              # variant  -> copayment
+              # variant2 -> copayment
+
+              rule2.preferred_related = variant2.product_id
+              rule2.save
+              promotion2.reload
+
+              relatable_line_1.update_attribute(:quantity, 1)
+              relatable_line_2.update_attribute(:quantity, 1)
+
+              copayment_line_1.update_attribute(:quantity, 2)
+
+              order.line_items = [relatable_line_1, relatable_line_2, copayment_line_1]
+
+              expect(subject.eligible?(copayment_line_1)).to be true
+              expect(subject2.eligible?(copayment_line_1)).to be true
+
+              expect(subject.compute(copayment_line_1)).to eq 1
+              expect(subject2.compute(copayment_line_1)).to eq 2
+            end
+
+            it "computed with more than one relatables with relations with different discounts" do
+              # variant  -> copayment 2 (relation4 $2) (x1)
+              # variant2 -> copayment   (relation2 $2) (x2)
+              # variant  -> copayment   (relation  $1) (x5)
+
+              rule2.preferred_related = variant2.product_id
+              rule2.save
+              promotion2.reload
+
+              relatable_line_1.update_attribute(:quantity, 5)
+              relatable_line_2.update_attribute(:quantity, 2)
+
+              copayment_line_1.update_attribute(:quantity, 6)
+              copayment_line_2.update_attribute(:quantity, 1)
+
+              order.line_items = [relatable_line_1, relatable_line_2, copayment_line_1, copayment_line_2]
+
+              expect(subject.eligible?(copayment_line_1)).to be true
+              expect(subject.eligible?(copayment_line_2)).to be true
+
+              expect(subject.compute(copayment_line_1)).to eq 5
+              expect(subject.compute(copayment_line_2)).to eq 2
+
+              expect(subject2.compute(copayment_line_1)).to eq 4
+              expect(subject2.compute(copayment_line_2)).to eq 0
+            end
+
+            context "Promotion with excluded copayment" do
+              before(:each) do
+                rule.preferred_related = variant.product_id
+                rule.save
+                promotion.reload
+              end
+
+              it "Excluded copayment has more discount" do
+                # variant -> copayment2 (excluded relation4 $2) (x1)
+                # variant -> copayment  (relation  $1)          (x0)
+
+                relation4.update_attribute(:exclude, true)
+
+                relatable_line_1.update_attribute(:quantity, 3)
+
+                copayment_line_1.update_attribute(:quantity, 1)
+                copayment_line_2.update_attribute(:quantity, 1)
+
+                order.line_items = [relatable_line_1, copayment_line_1, copayment_line_2]
+
+                expect(subject.eligible?(copayment_line_1)).to be true
+                expect(subject.eligible?(copayment_line_2)).to be true
+
+                expect(subject.compute(copayment_line_1)).to eq 0
+                expect(subject.compute(copayment_line_2)).to eq 2
+              end
+
+              it "No excluded copayment has more discount" do
+                # variant -> copayment2 (excluded relation4 $2) (x0)
+                # variant -> copayment  (relation  $1)          (x1)
+
+                relation.update_attribute(:exclude, true)
+
+                relatable_line_1.update_attribute(:quantity, 3)
+
+                copayment_line_1.update_attribute(:quantity, 1)
+                copayment_line_2.update_attribute(:quantity, 1)
+
+                order.line_items = [relatable_line_1, copayment_line_1, copayment_line_2]
+
+                expect(subject.eligible?(copayment_line_1)).to be true
+                expect(subject.eligible?(copayment_line_2)).to be true
+
+                expect(subject.compute(copayment_line_1)).to eq 1
+                expect(subject.compute(copayment_line_2)).to eq 0
+              end
+            end
           end
 
-          it "computed more than one relatables with the same copayment" do
-            # variant  -> copayment
-            # variant2 -> copayment
+          context "Non shared copayments" do
+            it "computed with more than one relatables with relations with different discounts" do
+              Spree::Config[:shared_copayments] = false
+              # variant  -> copayment 2 (relation4 $2) (x1)
+              # variant2 -> copayment   (relation2 $2) (x2)
+              # variant  -> copayment   (relation  $1) (x1)
 
-            rule2.preferred_related = variant2.product_id
-            rule2.save
-            promotion2.reload
+              rule2.preferred_related = variant2.product_id
+              rule2.save
+              promotion2.reload
 
-            relatable_line_1.update_attribute(:quantity, 1)
-            relatable_line_2.update_attribute(:quantity, 1)
+              relatable_line_1.update_attribute(:quantity, 5)
+              relatable_line_2.update_attribute(:quantity, 2)
 
-            copayment_line_1.update_attribute(:quantity, 2)
+              copayment_line_1.update_attribute(:quantity, 3)
+              copayment_line_2.update_attribute(:quantity, 1)
 
-            order.line_items = [relatable_line_1, relatable_line_2, copayment_line_1]
+              order.line_items = [relatable_line_1, relatable_line_2, copayment_line_1, copayment_line_2]
 
-            expect(subject.eligible?(copayment_line_1)).to be true
-            expect(subject2.eligible?(copayment_line_1)).to be true
+              expect(subject.eligible?(copayment_line_1)).to be true
+              expect(subject.eligible?(copayment_line_2)).to be true
 
-            expect(subject.compute(copayment_line_1)).to eq 1
-            expect(subject2.compute(copayment_line_1)).to eq 2
-          end
+              expect(subject.compute(copayment_line_1)).to eq 1
+              expect(subject.compute(copayment_line_2)).to eq 2
 
-          it "computed with more than one relatables with relations with different discounts" do
-            # variant  -> copayment 2 (relation4 $2) (x1)
-            # variant2 -> copayment   (relation2 $2) (x2)
-            # variant  -> copayment   (relation  $1) (x1)
-
-            rule2.preferred_related = variant2.product_id
-            rule2.save
-            promotion2.reload
-
-            relatable_line_1.update_attribute(:quantity, 5)
-            relatable_line_2.update_attribute(:quantity, 2)
-
-            copayment_line_1.update_attribute(:quantity, 3)
-            copayment_line_2.update_attribute(:quantity, 1)
-
-            order.line_items = [relatable_line_1, relatable_line_2, copayment_line_1, copayment_line_2]
-
-            expect(subject.eligible?(copayment_line_1)).to be true
-            expect(subject.eligible?(copayment_line_2)).to be true
-
-            expect(subject.compute(copayment_line_1)).to eq 1
-            expect(subject.compute(copayment_line_2)).to eq 2
-
-            expect(subject2.compute(copayment_line_1)).to eq 4
-            expect(subject2.compute(copayment_line_2)).to eq 0
-          end
-        end
-
-
-        context "Promotion with excluded copayment" do
-          before(:each) do
-            rule.preferred_related = variant.product_id
-            rule.save
-            promotion.reload
-          end
-
-          it "Excluded copayment has more discount" do
-            # variant -> copayment2 (excluded relation4 $2) (x1)
-            # variant -> copayment  (relation  $1)          (x0)
-
-            relation4.update_attribute(:exclude, true)
-
-            relatable_line_1.update_attribute(:quantity, 3)
-
-            copayment_line_1.update_attribute(:quantity, 1)
-            copayment_line_2.update_attribute(:quantity, 1)
-
-            order.line_items = [relatable_line_1, copayment_line_1, copayment_line_2]
-
-            expect(subject.eligible?(copayment_line_1)).to be true
-            expect(subject.eligible?(copayment_line_2)).to be true
-
-            expect(subject.compute(copayment_line_1)).to eq 0
-            expect(subject.compute(copayment_line_2)).to eq 2
-          end
-
-          it "No excluded copayment has more discount" do
-            # variant -> copayment2 (excluded relation4 $2) (x0)
-            # variant -> copayment  (relation  $1)          (x1)
-
-            relation.update_attribute(:exclude, true)
-
-            relatable_line_1.update_attribute(:quantity, 3)
-
-            copayment_line_1.update_attribute(:quantity, 1)
-            copayment_line_2.update_attribute(:quantity, 1)
-
-            order.line_items = [relatable_line_1, copayment_line_1, copayment_line_2]
-
-            expect(subject.eligible?(copayment_line_1)).to be true
-            expect(subject.eligible?(copayment_line_2)).to be true
-
-            expect(subject.compute(copayment_line_1)).to eq 1
-            expect(subject.compute(copayment_line_2)).to eq 0
+              expect(subject2.compute(copayment_line_1)).to eq 4
+              expect(subject2.compute(copayment_line_2)).to eq 0
+            end
           end
         end
       end
