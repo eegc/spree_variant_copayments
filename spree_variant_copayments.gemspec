@@ -2,7 +2,7 @@
 Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
   s.name        = 'spree_variant_copayments'
-  s.version     = '1.0.3'
+  s.version     = '2.0.0'
   s.summary     = 'Manage variant copayments relations'
   s.description = s.summary
   s.required_ruby_version = '>= 2.1.0'
