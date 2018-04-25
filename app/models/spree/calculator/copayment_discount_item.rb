@@ -119,17 +119,20 @@ module Spree
 
         exists_excluded = true if relation.exclude && is_relatable_promotion?(relatable_id)
 
-        # Discounting of the evaluated relatable copayment:
-        # If it is part of the relatables of the relationship
-        if (@relatables.ids & relation_relatables.pluck(:variant_id)).present?
-          @relatables_quant -= factor
-        end
+        # For non-shared co-payments change non_shared_copayments config
+        unless Spree::Config[:shared_copayments]
+          # Discounting of the evaluated relatable copayment:
+          # If it is part of the relatables of the relationship
+          if (@relatables.ids & relation_relatables.pluck(:variant_id)).present?
+            @relatables_quant -= factor
+          end
 
-        # Discount the amount factor of the copayment evaluated:
-        # If the copayment of the relationship is the evaluated variant
-        # If it is within the copayments of the promo
-        if ([@variant.id] & [related_to_id] & copayments_promotion.ids).present?
-          @item_quant -= factor
+          # Discount the amount factor of the copayment evaluated:
+          # If the copayment of the relationship is the evaluated variant
+          # If it is within the copayments of the promo
+          if ([@variant.id] & [related_to_id] & copayments_promotion.ids).present?
+            @item_quant -= factor
+          end
         end
       end
     end
